@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JMeter Test Runner</title>
+<style>
+       body {
+           font-family: Arial, sans-serif;
+       }
+       .status {
+           margin-top: 20px;
+       }
+       .error {
+           color: red;
+       }
+       .results {
+           margin-top: 20px;
+       }
+</style>
+</head>
+<body>
+<h1>JMeter Test Runner</h1>
+<form id="start-form">
+<label for="gitRepoUrl">Git Repository URL:</label>
+<input type="text" id="gitRepoUrl" name="gitRepoUrl" required><br><br>
+<label for="testPlan">Test Plan Name:</label>
+<input type="text" id="testPlan" name="testPlan" required><br><br>
+<button type="submit">Start Test</button>
+</form>
+<form id="stop-form">
+<button type="submit">Stop Test</button>
+</form>
+<div class="status">
+<h2>Test Status</h2>
+<p>Status: <span id="test-status"></span></p>
+<p>Token: <span id="test-token"></span></p>
+<p>Start Time: <span id="test-start-time"></span></p>
+<p>End Time: <span id="test-end-time"></span></p>
+<p class="error">Error: <span id="test-error-message"></span></p>
+<p>Result CSV: <a id="result-file-link" href="" download>Download</a></p>
+<p>Result JTL: <a id="jtl-file-link" href="" download>Download</a></p>
+</div>
+<script>
+       document.getElementById('start-form').addEventListener('submit', function(e) {
+           e.preventDefault();
+           fetch('/start-test', {
+               method: 'POST',
+               headers: {
+                   'Content-Type': 'application/json'
+               },
+               body: JSON.stringify({
+                   gitRepoUrl: document.getElementById('gitRepoUrl').value,
+                   testPlan: document.getElementById('testPlan').value
+               })
+           })
+           .then(response => response.json())
+           .then(data => {
+               if (data.error) {
+                   document.getElementById('test-error-message').textContent = data.error;
+               } else {
+                   document.getElementById('test-error-message').textContent = '';
+                   updateStatus();
+               }
+           });
+       });
+       document.getElementById('stop-form').addEventListener('submit', function(e) {
+           e.preventDefault();
+           fetch('/stop-test', {
+               method: 'POST'
+           })
+           .then(response => response.json())
+           .then(data => {
+               if (data.error) {
+                   document.getElementById('test-error-message').textContent = data.error;
+               } else {
+                   document.getElementById('test-error-message').textContent = '';
+                   updateStatus();
+               }
+           });
+       });
+       function updateStatus() {
+           fetch('/test-status')
+           .then(response => response.json())
+           .then(data => {
+               document.getElementById('test-status').textContent = data.status;
+               document.getElementById('test-token').textContent = data.token || 'N/A';
+               document.getElementById('test-start-time').textContent = data.start_time || 'N/A';
+               document.getElementById('test-end-time').textContent = data.end_time || 'N/A';
+               if (data.result_file_url) {
+                   document.getElementById('result-file-link').href = data.result_file_url;
+                   document.getElementById('result-file-link').style.display = 'inline';
+               } else {
+                   document.getElementById('result-file-link').style.display = 'none';
+               }
+               if (data.jtl_file_url) {
+                   document.getElementById('jtl-file-link').href = data.jtl_file_url;
+                   document.getElementById('jtl-file-link').style.display = 'inline';
+               } else {
+                   document.getElementById('jtl-file-link').style.display = 'none';
+               }
+           });
+       }
+       // Initial status update
+       updateStatus();
+</script>
+</body>
+</html>
