@@ -1,0 +1,157 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+ name: jmeter
+ namespace: performance
+spec:
+ replicas: 1
+ selector:
+   matchLabels:
+     app: jmeter
+ template:
+   metadata:
+     labels:
+       app: jmeter
+   spec:
+     dnsPolicy: Default
+     containers:
+       - name: jmeter
+         image: poojagrv92/jmeter-prop:1.0
+         env:
+         - name: USERNAME
+           valueFrom:
+             secretKeyRef:
+               name: my-secret
+               key: USERNAME
+         - name: PASSWORD
+           valueFrom:
+             secretKeyRef:
+               name: my-secret
+               key: PASSWORD      
+         ports:
+           - containerPort: 5000
+         volumeMounts:
+           - name: test-results
+             mountPath: /test_results
+     volumes:
+       - name: test-results
+         emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+ name: jmeter-service
+ namespace: performance
+spec:
+ type: ClusterIP
+ selector:
+   app: jmeter
+ ports:
+   - protocol: TCP
+     port: 80
+     targetPort: 5000
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+ name: jmeter-ingress
+ namespace: performance
+ annotations:
+ labels:
+spec:
+ ingressClassName: nginx
+ rules:
+   - host: performance.dm-dqg-az-azure-nginx-3e744ec3.unx.sas.com
+     http:
+       paths:
+         - path: /start-test
+           pathType: Prefix
+           backend:
+             service:
+               name: jmeter-service
+               port:
+                 number: 80
+         - path: /stop-test
+           pathType: Prefix
+           backend:
+             service:
+               name: jmeter-service
+               port:
+                 number: 80
+         - path: /test-status
+           pathType: Prefix
+           backend:
+             service:
+               name: jmeter-service
+               port:
+                 number: 80
+         - path: /download/(.*)
+           pathType: Prefix
+           backend:
+             service:
+               name: jmeter-service
+               port:
+                 number: 80
+         - path: /health
+           pathType: Prefix
+           backend:
+             service:
+               name: jmeter-service
+               port:
+                 number: 80
+   - host: '*.performance.dm-dqg-az-azure-nginx-3e744ec3.unx.sas.com'
+     http:
+       paths:
+         - path: /start-test
+           pathType: Prefix
+           backend:
+             service:
+               name: jmeter-service
+               port:
+                 number: 80
+         - path: /stop-test
+           pathType: Prefix
+           backend:
+             service:
+               name: jmeter-service
+               port:
+                 number: 80
+         - path: /test-status
+           pathType: Prefix
+           backend:
+             service:
+               name: jmeter-service
+               port:
+                 number: 80
+         - path: /download/(.*)
+           pathType: Prefix
+           backend:
+             service:
+               name: jmeter-service
+               port:
+                 number: 80
+         - path: /health
+           pathType: Prefix
+           backend:
+             service:
+               name: jmeter-service
+               port:
+                 number: 80
+         - path: /viewhtmlreport/(.*)
+           pathType: Prefix
+           backend:
+             service:
+               name: jmeter-service
+               port:
+                 number: 80
+         - path: /downloadhtmlreport/(.*)
+           pathType: Prefix
+           backend:
+             service:
+               name: jmeter-service
+               port:
+                 number: 80
+ tls:
+   - hosts:
+     - performance.dm-dqg-az-azure-nginx-3e744ec3.unx.sas.com
+     - '*.performance.dm-dqg-az-azure-nginx-3e744ec3.unx.sas.com'
